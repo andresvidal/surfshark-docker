@@ -2,6 +2,11 @@
 
 **IMPORTANT** The following instructions are based on an ARMv7l architecture (arm32v7/alpine:latest), like the Raspberry Pi.
 
+Find it on:
+
+- https://github.com/andresvidal/surfshark-docker
+- https://hub.docker.com/repository/docker/andresvidal/openvpn-armv7l
+
 ## Quick Start
 
 1. Sign up for a Sharksurf account, of course! 
