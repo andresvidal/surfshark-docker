@@ -5,7 +5,7 @@
 Find it on:
 
 - https://github.com/andresvidal/surfshark-docker
-- https://hub.docker.com/repository/docker/andresvidal/openvpn-armv7l
+- https://hub.docker.com/r/andresvidal/openvpn-armv7l
 
 ## Quick Start
 
