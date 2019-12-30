@@ -1,0 +1,76 @@
+version: "3"
+
+services:
+    vpn:
+        image: andresvidal/openvpn-armv7l
+        container_name: vpn
+        cap_add:
+            - net_admin
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        devices:
+            - /dev/net/tun
+        volumes:
+            - ./prod.surfshark.com.ovpn:/vpn/servers.ovpn
+            - ./credentials.txt:/vpn/auth.txt
+        restart: unless-stopped
+        command: '--config /vpn/servers.ovpn --auth-user-pass /vpn/auth.txt'
+
+    nzbget:
+        image: linuxserver/nzbget
+        container_name: nzbget
+        depends_on:
+            - vpn
+        network_mode: "service:vpn"
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - ./nzbget_config:/config
+            - ./nzbget_downloads/:/downloads
+        # use a proxy to access if behind a VPN
+        # Note: can't set ports if network_mode is set
+        # ports:
+        #    - 6789:6789
+        restart: unless-stopped
+        labels:
+            # Define an exposed port to route
+            - "traefik.http.services.nzbget.LoadBalancer.server.Port=6789" 
+            - "traefik.http.routers.nzbget.rule=Host(`nzbget.odroid.home`)"
+            - "traefik.http.routers.nzbget.service=nzbget"
+            - "traefik.http.routers.nzbget.entrypoints=nzbget,web"
+
+    helloweb1:
+            image: arm32v7/nginx
+            container_name: helloweb1
+            labels:
+                # Define an exposed port for traefik to route
+                - "traefik.http.services.helloweb1.LoadBalancer.server.Port=80" 
+                # Rules to listen with context "/something"
+                - "traefik.http.routers.helloweb1.rule=Host(`odroid.home`) && PathPrefix(`/helloweb`)"
+                - "traefik.http.routers.helloweb1.service=helloweb1"
+                # Rules to remove prefix"
+                - "traefik.http.middlewares.helloweb1-stripprefix.stripprefix.prefixes=/helloweb"
+                - "traefik.http.routers.helloweb1.middlewares=helloweb1-stripprefix"
+
+    reverse-proxy: 
+        image: traefik:v2.1
+        container_name: reverse-proxy
+        restart: always
+        command:
+            # - "--log.level=DEBUG"
+            - "--api.dashboard=true" # port 8080
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            # - "--providers.docker.exposedbydefault=false" # use label traefik.enable=true
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.nzbget.address=:5789"
+        ports:
+            - 80:80
+            - 7080:8080 # traefik dashboard
+            - 5789:5789 # nzbget reverse-proxy behind VPN
+        volumes: 
+            - /var/run/docker.sock:/var/run/docker.sock:ro

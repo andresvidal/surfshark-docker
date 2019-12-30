@@ -1,0 +1,8 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Surfshark Docker OpenVPN
+nzbget_config
+nzbget_downloads
